@@ -103,21 +103,35 @@ bool Stream::findUntil(const char *target, size_t targetLen, const char *termina
         return true;   // return true if target is a null string
     while((c = timedRead()) > 0) {
 
-        if(c != target[index])
-            index = 0; // reset index if any char does not match
-
-        if(c == target[index]) {
-            //////Serial.print("found "); Serial.write(c); Serial.print("index now"); Serial.println(index+1);
+        // Proper pattern matching with KMP-like restart logic
+        if(c != target[index]) {
+            // If mismatch, check if current char could start a new pattern
+            if(c == target[0]) {
+                index = 1; // Start new potential match
+            } else {
+                index = 0; // Reset completely
+            }
+        } else {
+            // Character matches current position in pattern
             if(++index >= targetLen) { // return true if all chars in the target match
                 return true;
             }
         }
 
-        if(termLen > 0 && c == terminator[termIndex]) {
-            if(++termIndex >= termLen)
-                return false;       // return false if terminate string found before target string
-        } else
-            termIndex = 0;
+        // Handle terminator matching with same logic
+        if(termLen > 0) {
+            if(c == terminator[termIndex]) {
+                if(++termIndex >= termLen)
+                    return false;       // return false if terminate string found before target string
+            } else {
+                // Check if current char could start new terminator match
+                if(c == terminator[0]) {
+                    termIndex = 1;
+                } else {
+                    termIndex = 0;
+                }
+            }
+        }
     }
     return false;
 }
