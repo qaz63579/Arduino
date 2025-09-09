@@ -662,13 +662,17 @@ int String::lastIndexOf(char theChar) const {
 int String::lastIndexOf(char ch, unsigned int fromIndex) const {
     if(fromIndex >= len())
         return -1;
-    char tempchar = buffer()[fromIndex + 1];
-    wbuffer()[fromIndex + 1] = '\0';
-    char* temp = strrchr(wbuffer(), ch);
-    wbuffer()[fromIndex + 1] = tempchar;
-    if(temp == NULL)
-        return -1;
-    return temp - buffer();
+    
+    // Safe bounds check to prevent buffer overflow
+    if(fromIndex >= len())
+        fromIndex = len() - 1;
+        
+    // Search backwards manually instead of modifying buffer
+    for(int i = (int)fromIndex; i >= 0; i--) {
+        if(buffer()[i] == ch)
+            return i;
+    }
+    return -1;
 }
 
 int String::lastIndexOf(const String &s2) const {
@@ -702,10 +706,18 @@ String String::substring(unsigned int left, unsigned int right) const {
         return out;
     if(right > len())
         right = len();
-    char temp = buffer()[right];  // save the replaced character
-    wbuffer()[right] = '\0';
-    out = wbuffer() + left;  // pointer arithmetic
-    wbuffer()[right] = temp;  //restore character
+    
+    // Safe substring creation without buffer modification
+    unsigned int subLen = right - left;
+    if(subLen == 0)
+        return out;
+        
+    // Reserve space and copy the substring safely
+    if(out.reserve(subLen)) {
+        memcpy(out.wbuffer(), buffer() + left, subLen);
+        out.wbuffer()[subLen] = '\0';
+        out.setLen(subLen);
+    }
     return out;
 }
 
